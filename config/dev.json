@@ -6,10 +6,7 @@
     "Environment" : "dev",
     "SecretStoreName" : "GITHUB_ACCESS",
     "CodePipelineRoleArn" : "arn:aws:iam::431424999328:role/service-role/AWSCodePipelineServiceRole-eu-west-1-cdm2",
-    "ArtifactsBucketName" : "cdm2-cicd-artifacts",
-    "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
-    "sfStorageAWSExternalID" : "UB56864_SFCRole=8_cjyF2OnZNmG50x9tCTNCYmxSZI4=",
-    "sfSQLChannel" : "arn:aws:sqs:eu-west-1:407453656878:sf-snowpipe-AIDAV5XRBM4XCQMLNUJLT-I7AuInLFwarx75D4Pap6Lg"
+    "ArtifactsBucketName" : "cdm2-cicd-artifacts"
   },
   "Tags" : {
       "application" : "cdm2",
