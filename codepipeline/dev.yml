@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CodePipeline resources for the CDM2 project
+
+Parameters:
+  ArtifactsBucketName:
+    Type: String
+
+  CodePipelineRoleArn:
+    Type: String
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - sandbox
+      - dev
+      - test
+      - prod
+    Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  GithubBranchName:
+    Type: String
+
+  GithubOrganisationName:
+    Type: String
+
+  GithubRepoName:
+    Type: String
+
+  SecretStoreName:
+    Type: String
+
+  UnitTestsProjectName:
+    Type: String
+
+Resources:
+  CloudFormationPipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactsBucketName
+      Name: !Sub cdm2-pipeline-${Environment}
+      RoleArn: !Ref CodePipelineRoleArn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: ETLSource
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              Configuration:
+                Branch: !Ref GithubBranchName
+                OAuthToken: !Sub "{{resolve:secretsmanager:${SecretStoreName}:SecretString:GITHUB_ACCESS}}"
+                Owner: !Ref GithubOrganisationName
+                PollForSourceChanges: true
+                Repo: !Ref GithubRepoName
+              OutputArtifacts:
+                - Name: ETLSource
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: CreateChangeSet
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                Capabilities: CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM,CAPABILITY_NAMED_IAM
+                ChangeSetName: update-stack
+                RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
+                StackName: !Sub cdm2-stack-${Environment}
+                TemplateConfiguration: !Sub "ETLSource::ci/config/${Environment}.json"
+                TemplatePath: "ETLSource::ci/master-stack.yml"
+              InputArtifacts:
+                - Name: ETLSource
+              RunOrder: 1
+            - Name: Execute
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: "1"
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                ChangeSetName: update-stack
+                StackName: !Sub cdm2-stack-${Environment}
+              RunOrder: 2
+
+Outputs:
+  CodePipelineName:
+    Description: CodePipeline Name
+    Value: !Ref CloudFormationPipeline
