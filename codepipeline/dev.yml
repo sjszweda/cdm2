@@ -30,9 +30,6 @@ Parameters:
   SecretStoreName:
     Type: String
 
-  UnitTestsProjectName:
-    Type: String
-
 Resources:
   CloudFormationPipeline:
     Type: "AWS::CodePipeline::Pipeline"
@@ -40,12 +37,12 @@ Resources:
       ArtifactStore:
         Type: S3
         Location: !Ref ArtifactsBucketName
-      Name: !Sub cdm2-pipeline-${Environment}
+      Name: !Sub cdm2-cicd-artifacts-${Environment}
       RoleArn: !Ref CodePipelineRoleArn
       Stages:
         - Name: Source
           Actions:
-            - Name: ETLSource
+            - Name: cdm2Source
               ActionTypeId:
                 Category: Source
                 Owner: ThirdParty
@@ -58,7 +55,7 @@ Resources:
                 PollForSourceChanges: true
                 Repo: !Ref GithubRepoName
               OutputArtifacts:
-                - Name: ETLSource
+                - Name: SourceArtifact
               RunOrder: 1
         - Name: Deploy
           Actions:
@@ -73,11 +70,10 @@ Resources:
                 Capabilities: CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM,CAPABILITY_NAMED_IAM
                 ChangeSetName: update-stack
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
-                StackName: !Sub cdm2-stack-${Environment}
-                TemplateConfiguration: !Sub "ETLSource::ci/config/${Environment}.json"
-                TemplatePath: "ETLSource::ci/master-stack.yml"
+                StackName: !Sub cdm2-cloudformation-${Environment}
+                TemplatePath: "SourceArtifact::master-stack.yml"
               InputArtifacts:
-                - Name: ETLSource
+                - Name: SourceArtifact
               RunOrder: 1
             - Name: Execute
               ActionTypeId:
@@ -88,7 +84,7 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: update-stack
-                StackName: !Sub cdm2-stack-${Environment}
+                StackName: !Sub cdm2-cloudformation-${Environment}
               RunOrder: 2
 
 Outputs:
