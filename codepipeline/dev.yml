@@ -29,9 +29,7 @@ Parameters:
 
   SecretStoreName:
     Type: String
-
-  UnitTestsProjectName:
-    Type: String
+    
 
 Resources:
   CloudFormationPipeline:
