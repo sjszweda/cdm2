@@ -37,7 +37,7 @@ Resources:
       ArtifactStore:
         Type: S3
         Location: !Ref ArtifactsBucketName
-      Name: !Sub cdm2-cicd-artifacts-${Environment}
+      Name: !Sub cdm2-cicd-pipeline-${Environment}
       RoleArn: !Ref CodePipelineRoleArn
       Stages:
         - Name: Source
@@ -50,7 +50,7 @@ Resources:
                 Version: "1"
               Configuration:
                 Branch: !Ref GithubBranchName
-                OAuthToken: !Sub "{{resolve:secretsmanager:${SecretStoreName}:SecretString:GITHUB_ACCESS}}"
+                OAuthToken: !Sub "{{resolve:secretsmanager:${SecretStoreName}:SecretString:token}}"
                 Owner: !Ref GithubOrganisationName
                 PollForSourceChanges: true
                 Repo: !Ref GithubRepoName
@@ -70,7 +70,7 @@ Resources:
                 Capabilities: CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM,CAPABILITY_NAMED_IAM
                 ChangeSetName: update-stack
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
-                StackName: !Sub cdm2-cloudformation-${Environment}
+                StackName: !Sub cdm2-masterstack-${Environment}
                 TemplatePath: "SourceArtifact::master-stack.yml"
               InputArtifacts:
                 - Name: SourceArtifact
@@ -84,7 +84,7 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: update-stack
-                StackName: !Sub cdm2-cloudformation-${Environment}
+                StackName: !Sub cdm2-masterstack-${Environment}
               RunOrder: 2
 
 Outputs:
