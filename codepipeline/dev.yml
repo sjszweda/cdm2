@@ -38,7 +38,6 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BucketName: !Sub "${ApplicationName}-cicd-artifacts-${Environment}"
-      #block public access
       AccessControl: Private
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -47,14 +46,13 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Suspended
-      #add server side encryption
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: 'AES256'
             BucketKeyEnabled: true
 
-  s3sslonlyaccess:
+  ArtifactsBucketsslonly:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref ArtifactsBucket
@@ -69,6 +67,45 @@ Resources:
             Condition:
               StringLike:
                 "aws:SecureTransport": "false"
+
+
+    TemplatesBucket:
+      Type: 'AWS::S3::Bucket'
+      DeletionPolicy: Retain
+      Properties:
+        BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
+        #block public access
+        AccessControl: Private
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        VersioningConfiguration:
+          Status: Suspended
+        #add server side encryption
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: 'AES256'
+              BucketKeyEnabled: true
+
+    TemplatesBucketsslonly:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref TemplatesBucket
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Action:
+                - 's3:*'
+              Effect: Deny
+              Resource: !GetAtt TemplatesBucket.Arn
+              Principal: '*'
+              Condition:
+                StringLike:
+                  "aws:SecureTransport": "false"
+
 
   CloudFormationPipeline:
     Type: "AWS::CodePipeline::Pipeline"
@@ -98,6 +135,19 @@ Resources:
               RunOrder: 1
         - Name: Deploy
           Actions:
+            Actions:
+            - Name: DeployTemplates
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: "1"
+              Configuration:
+                BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
+                Extract: true
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
             - Name: CreateChangeSet
               ActionTypeId:
                 Category: Deploy
@@ -112,10 +162,6 @@ Resources:
                 StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
                 TemplateConfiguration: !Sub "SourceArtifact::config/${Environment}.json"
                 TemplatePath: "SourceArtifact::master-stack.yml"
-                ParameterOverrides: |
-                  {
-                    "ArtifactURL" : { "Fn::GetArtifactAtt" : ["SourceArtifact", "URL"]}
-                  }
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1

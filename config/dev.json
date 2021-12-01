@@ -1,8 +1,7 @@
 {
   "Parameters" : {
     "ApplicationName" : "cdm2",
-    "Environment" : "dev",
-    "ArtifactURL" : "[over-written by the pipeline]",
+    "Environment" : "dev",s
     "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
     "sfStorageAWSExternalID" : "000",
     "sfSQLChannel" : "",
