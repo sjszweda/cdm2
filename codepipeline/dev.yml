@@ -33,12 +33,49 @@ Parameters:
     Type: String
 
 Resources:
+  ArtifactsBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${ApplicationName}-cicd-artifacts-${Environment}"
+      #block public access
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Suspended
+      #add server side encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+            BucketKeyEnabled: true
+
+  s3sslonlyaccess:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactsBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Deny
+            Resource: !GetAtt ArtifactsBucket.Arn
+            Principal: '*'
+            Condition:
+              StringLike:
+                "aws:SecureTransport": "false"
+
   CloudFormationPipeline:
     Type: "AWS::CodePipeline::Pipeline"
     Properties:
       ArtifactStore:
         Type: S3
-        Location: !Sub "${ApplicationName}-cicd-artifacts-${Environment}"
+        Location: !Ref ArtifactsBucket
       Name: !Sub "${ApplicationName}-cicd-pipeline-${Environment}"
       RoleArn: !Ref CodePipelineRoleArn
       Stages:
@@ -73,8 +110,12 @@ Resources:
                 ChangeSetName: update-stack
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
                 StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
-                TemplateConfiguration: !Sub "SourceArtifact::${Environment}.json"
+                TemplateConfiguration: !Sub "SourceArtifact::config/${Environment}.json"
                 TemplatePath: "SourceArtifact::master-stack.yml"
+                ParameterOverrides: |
+                  {
+                    "ArtifactsBucketName" : { "Fn::GetParam" : ["SourceArtifact", "BucketName"]}
+                  }
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
