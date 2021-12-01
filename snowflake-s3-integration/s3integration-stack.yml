@@ -42,7 +42,7 @@ Resources:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Retain
     Properties:
-      BucketName: !Sub "${ApplicationName}-${Environment}"
+      BucketName: !Sub "${ApplicationName}-sszweda"
       #block public access
       AccessControl: Private
       PublicAccessBlockConfiguration:
