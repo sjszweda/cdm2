@@ -1,16 +1,10 @@
 {
   "Parameters" : {
-    "GithubOrganisationName" : "sjszweda",
-    "GithubRepoName" : "cdm2",
-    "GithubBranchName" : "dev",
+    "ApplicationName" : "cdm2",
     "Environment" : "dev",
-    "SecretStoreName" : "GITHUB_ACCESS",
-    "CodePipelineRoleArn" : "arn:aws:iam::431424999328:role/service-role/AWSCodePipelineServiceRole-eu-west-1-cdm2",
-    "ArtifactsBucketName" : "cdm2-cicd-artifacts",
     "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
     "sfStorageAWSExternalID" : "000",
     "sfSQLChannel" : "",
-
     "DeployS3IntegrationStack" : "true"
   },
   "Tags" : {
