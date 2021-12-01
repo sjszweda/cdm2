@@ -6,15 +6,18 @@
     "Environment" : "dev",
     "SecretStoreName" : "GITHUB_ACCESS",
     "CodePipelineRoleArn" : "arn:aws:iam::431424999328:role/service-role/AWSCodePipelineServiceRole-eu-west-1-cdm2",
-    "ArtifactsBucketName" : "cdm2-cicd-artifacts"
+    "ArtifactsBucketName" : "cdm2-cicd-artifacts",
+    "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
+    "sfStorageAWSExternalID" : "000",
+    "sfSQLChannel" : "",
+
+    "DeployS3IntegrationStack" : "true"
   },
   "Tags" : {
       "application" : "cdm2",
       "environment" : "dev",
-      "version" : "1.00.0",
-      "support_tier" : "1",
+      "version" : "0.00.0",
       "technical_owner" : "parkhouse",
-      "confidentiality" : "internal",
-      "controls" : "na"
+      "confidentiality" : "internal"
     }
 }

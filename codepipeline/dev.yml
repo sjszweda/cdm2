@@ -3,11 +3,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: CodePipeline resources for the CDM2 project
 
 Parameters:
-  ArtifactsBucketName:
+  ApplicationName:
     Type: String
-
-  CodePipelineRoleArn:
-    Type: String
+    Default: cdm2
+    Description: Application name used across all stacks
 
   Environment:
     Type: String
@@ -17,6 +16,9 @@ Parameters:
       - test
       - prod
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  CodePipelineRoleArn:
+    Type: String
 
   GithubBranchName:
     Type: String
@@ -36,8 +38,8 @@ Resources:
     Properties:
       ArtifactStore:
         Type: S3
-        Location: !Ref ArtifactsBucketName
-      Name: !Sub cdm2-cicd-pipeline-${Environment}
+        Location: !Sub "${ApplicationName}-cicd-artifacts-${Environment}"
+      Name: !Sub "${ApplicationName}-cicd-pipeline-${Environment}"
       RoleArn: !Ref CodePipelineRoleArn
       Stages:
         - Name: Source
@@ -70,7 +72,8 @@ Resources:
                 Capabilities: CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM,CAPABILITY_NAMED_IAM
                 ChangeSetName: update-stack
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
-                StackName: !Sub cdm2-masterstack-${Environment}
+                StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
+                TemplateConfiguration: !Sub "SourceArtifact::${Environment}.json"
                 TemplatePath: "SourceArtifact::master-stack.yml"
               InputArtifacts:
                 - Name: SourceArtifact
@@ -84,7 +87,7 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: update-stack
-                StackName: !Sub cdm2-masterstack-${Environment}
+                StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
               RunOrder: 2
 
 Outputs:
