@@ -3,11 +3,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: CodePipeline resources for the CDM2 project
 
 Parameters:
-  ArtifactsBucketName:
+  ApplicationName:
     Type: String
-
-  CodePipelineRoleArn:
-    Type: String
+    Default: cdm2
+    Description: Application name used across all stacks
 
   Environment:
     Type: String
@@ -17,6 +16,9 @@ Parameters:
       - test
       - prod
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  CodePipelineRoleArn:
+    Type: String
 
   GithubBranchName:
     Type: String
@@ -31,13 +33,87 @@ Parameters:
     Type: String
 
 Resources:
+  ArtifactsBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${ApplicationName}-cicd-artifacts-${Environment}"
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Suspended
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+            BucketKeyEnabled: true
+
+  ArtifactsBucketsslonly:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactsBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Deny
+            Resource: !GetAtt ArtifactsBucket.Arn
+            Principal: '*'
+            Condition:
+              StringLike:
+                "aws:SecureTransport": "false"
+
+
+  TemplatesBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
+      #block public access
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Suspended
+      #add server side encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+            BucketKeyEnabled: true
+
+  TemplatesBucketsslonly:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TemplatesBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Deny
+            Resource: !GetAtt TemplatesBucket.Arn
+            Principal: '*'
+            Condition:
+              StringLike:
+                "aws:SecureTransport": "false"
+
+
   CloudFormationPipeline:
     Type: "AWS::CodePipeline::Pipeline"
     Properties:
       ArtifactStore:
         Type: S3
-        Location: !Ref ArtifactsBucketName
-      Name: !Sub cdm2-cicd-artifacts-${Environment}
+        Location: !Ref ArtifactsBucket
+      Name: !Sub "${ApplicationName}-cicd-pipeline-${Environment}"
       RoleArn: !Ref CodePipelineRoleArn
       Stages:
         - Name: Source
@@ -50,7 +126,7 @@ Resources:
                 Version: "1"
               Configuration:
                 Branch: !Ref GithubBranchName
-                OAuthToken: !Sub "{{resolve:secretsmanager:${SecretStoreName}:SecretString:GITHUB_ACCESS}}"
+                OAuthToken: !Sub "{{resolve:secretsmanager:${SecretStoreName}:SecretString:token}}"
                 Owner: !Ref GithubOrganisationName
                 PollForSourceChanges: true
                 Repo: !Ref GithubRepoName
@@ -59,6 +135,18 @@ Resources:
               RunOrder: 1
         - Name: Deploy
           Actions:
+            - Name: DeployTemplates
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: "1"
+              Configuration:
+                BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
+                Extract: true
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
             - Name: CreateChangeSet
               ActionTypeId:
                 Category: Deploy
@@ -70,7 +158,8 @@ Resources:
                 Capabilities: CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM,CAPABILITY_NAMED_IAM
                 ChangeSetName: update-stack
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
-                StackName: !Sub cdm2-cloudformation-${Environment}
+                StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
+                TemplateConfiguration: !Sub "SourceArtifact::config/${Environment}.json"
                 TemplatePath: "SourceArtifact::master-stack.yml"
               InputArtifacts:
                 - Name: SourceArtifact
@@ -84,7 +173,7 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: update-stack
-                StackName: !Sub cdm2-cloudformation-${Environment}
+                StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
               RunOrder: 2
 
 Outputs:

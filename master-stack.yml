@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create the AWS stacks needed for CDM2
+
+Parameters:
+  ApplicationName:
+    Type: String
+    Default: cdm2
+    Description: Application name used across all stacks
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - sandbox
+      - dev
+      - test
+      - prod
+    Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  sfStorageAWSIAMUserARN:
+    Type: String
+    Description: "STORAGE_AWS_IAM_USER_ARN from Snowflake"
+    Default: "arn:aws:iam::407453656878:user/wdvj-s-iest4729"
+
+  sfStorageAWSExternalID:
+    Type: String
+    Description: "STORAGE_AWS_EXTERNAL_ID from Snowflake (leave as '000' if Snowflake objects do not exist yet)"
+    Default: "000"
+
+  sfSQLChannel:
+    Type: String
+    Description: "ARN of the SQS channel from Snowflake (leave blank if Snowflake objects do not exist yet)"
+    Default: ""
+
+  DeployS3IntegrationStack:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Whether to deploy Snowflake S3 Integration Job stack
+
+
+Conditions:
+  SallDeployS3IntegrationStack: !Equals [!Ref DeployS3IntegrationStack, 'true']
+
+
+Resources:
+  S3IntegrationStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployS3IntegrationStack
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        sfStorageAWSIAMUserARN: !Ref sfStorageAWSIAMUserARN
+        sfStorageAWSExternalID: !Ref sfStorageAWSExternalID
+        sfSQLChannel: !Ref sfSQLChannel
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/snowflake-s3-integration/s3integration-stack.yml"
