@@ -16,9 +16,9 @@ Parameters:
       - prod
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
 
-  ArtifactsBucketName:
+  ArtifactURL:
     Type: String
-    Description: Artifacts Store Bucket Name
+    Description: URL of the project artifact in S3
 
   sfStorageAWSIAMUserARN:
     Type: String
@@ -57,4 +57,4 @@ Resources:
         sfStorageAWSIAMUserARN: !Ref sfStorageAWSIAMUserARN
         sfStorageAWSExternalID: !Ref sfStorageAWSExternalID
         sfSQLChannel: !Ref sfSQLChannel
-      TemplateURL: !Sub "https://s3.amazonaws.com/${ArtifactsBucketName}/snowflake-s3-integration/s3integration-stack.yml"
+      TemplateURL: !Sub "${ArtifactURL}::snowflake-s3-integration/s3integration-stack.yml"

@@ -114,7 +114,7 @@ Resources:
                 TemplatePath: "SourceArtifact::master-stack.yml"
                 ParameterOverrides: |
                   {
-                    "ArtifactsBucketName" : { "Fn::GetParam" : ["SourceArtifact", "BucketName"]}
+                    "ArtifactURL" : { "Fn::GetArtifactAtt" : ["SourceArtifact", "URL"]}
                   }
               InputArtifacts:
                 - Name: SourceArtifact
