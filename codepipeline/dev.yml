@@ -69,42 +69,42 @@ Resources:
                 "aws:SecureTransport": "false"
 
 
-    TemplatesBucket:
-      Type: 'AWS::S3::Bucket'
-      DeletionPolicy: Retain
-      Properties:
-        BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
-        #block public access
-        AccessControl: Private
-        PublicAccessBlockConfiguration:
-          BlockPublicAcls: true
-          BlockPublicPolicy: true
-          IgnorePublicAcls: true
-          RestrictPublicBuckets: true
-        VersioningConfiguration:
-          Status: Suspended
-        #add server side encryption
-        BucketEncryption:
-          ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: 'AES256'
-              BucketKeyEnabled: true
+  TemplatesBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
+      #block public access
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Suspended
+      #add server side encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+            BucketKeyEnabled: true
 
-    TemplatesBucketsslonly:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        Bucket: !Ref TemplatesBucket
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-            - Action:
-                - 's3:*'
-              Effect: Deny
-              Resource: !GetAtt TemplatesBucket.Arn
-              Principal: '*'
-              Condition:
-                StringLike:
-                  "aws:SecureTransport": "false"
+  TemplatesBucketsslonly:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TemplatesBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Deny
+            Resource: !GetAtt TemplatesBucket.Arn
+            Principal: '*'
+            Condition:
+              StringLike:
+                "aws:SecureTransport": "false"
 
 
   CloudFormationPipeline:
@@ -135,7 +135,6 @@ Resources:
               RunOrder: 1
         - Name: Deploy
           Actions:
-            Actions:
             - Name: DeployTemplates
               ActionTypeId:
                 Category: Deploy
