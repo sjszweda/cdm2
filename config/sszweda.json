@@ -3,7 +3,7 @@
     "ApplicationName" : "cdm2",
     "Environment" : "sszweda",
     "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
-    "sfStorageAWSExternalID" : "MU59084_SFCRole=8_yZh0mH0/ABxUwLzfpzgONVAQXTw=",
+    "sfStorageAWSExternalID" : "MU59084_SFCRole=8_y/exVbOFBssc0cx2lm3hTr2l49w=",
     "sfSQSChannel" : "arn:aws:sqs:eu-west-1:546610702380:sf-snowpipe-AIDAX6REJNAWKBBTXRXVX-3bDcdgtD6LcCulz5zZ7zSA",
     "DeploySnowflakeIntegrationStack" : "true"
   },
