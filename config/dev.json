@@ -1,10 +1,10 @@
 {
   "Parameters" : {
     "ApplicationName" : "cdm2",
-    "Environment" : "dev",
+    "Environment" : "sszweda",
     "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
     "sfStorageAWSExternalID" : "000",
-    "sfSQLChannel" : "",
+    "sfSQSChannel" : "",
     "DeployS3IntegrationStack" : "true"
   },
   "Tags" : {

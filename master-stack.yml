@@ -14,6 +14,7 @@ Parameters:
       - dev
       - test
       - prod
+      - sszweda
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
 
   sfStorageAWSIAMUserARN:
@@ -26,12 +27,12 @@ Parameters:
     Description: "STORAGE_AWS_EXTERNAL_ID from Snowflake (leave as '000' if Snowflake objects do not exist yet)"
     Default: "000"
 
-  sfSQLChannel:
+  sfSQSChannel:
     Type: String
     Description: "ARN of the SQS channel from Snowflake (leave blank if Snowflake objects do not exist yet)"
     Default: ""
 
-  DeployS3IntegrationStack:
+  DeploySnowflakeIntegrationStack:
     Type: String
     AllowedValues:
       - "true"
@@ -40,17 +41,28 @@ Parameters:
 
 
 Conditions:
-  SallDeployS3IntegrationStack: !Equals [!Ref DeployS3IntegrationStack, 'true']
+  SallDeployCDM2BucketStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
+  SallDeploySnowflakeIntegrationStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
 
 
 Resources:
-  S3IntegrationStack:
+  CDM2BucketStack:
+      Type: "AWS::CloudFormation::Stack"
+      Condition: SallDeployCDM2BucketStack
+      Properties:
+        Parameters:
+          Environment: !Ref Environment
+          BucketName: "cdm2"
+          NotificationPrefix: "input/recon/"
+          NotificationSQSQueueARN: !Ref sfSQSChannel
+        TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/resources/s3-bucket.yml"
+
+  SnowflakeIntegrationStack:
     Type: "AWS::CloudFormation::Stack"
-    Condition: SallDeployS3IntegrationStack
+    Condition: SallDeploySnowflakeIntegrationStack
     Properties:
       Parameters:
         Environment: !Ref Environment
         sfStorageAWSIAMUserARN: !Ref sfStorageAWSIAMUserARN
         sfStorageAWSExternalID: !Ref sfStorageAWSExternalID
-        sfSQLChannel: !Ref sfSQLChannel
-      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/snowflake-s3-integration/s3integration-stack.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/snowflake-s3-integration/snowflake-integration-stack.yml"

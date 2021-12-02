@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create S3 Bucket
+
+Parameters:
+  Environment:
+    Type: String
+    Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  DeletionPolicy:
+    Type: String
+      AllowedValues:
+        - Delete
+        - Retain
+    Default: "Retain"
+
+  BucketName:
+    Type: String
+    Default: ""
+    Description: Optional name of the bucket.
+
+  LoggingBucketName:
+    Type: String
+    Default: ""
+    Description: Name of bucket to ship access logs to
+
+  ReplicationBucket:
+    Type: String
+    Default: ""
+    Description: ARN of bucket to replicate to
+
+  ReplicationDestinationAccountId:
+    Type: String
+    Default: ""
+    Description: AWS Account id of replication destination
+
+  ReplicationEnableDeletion:
+    Type: String
+    Default: Disabled
+    AllowedValues:
+      - Enabled
+      - Disabled
+    Description: Determines whether to replicate object deletes when replication is turned on
+
+  ReplicationRole:
+    Type: String
+    Default: ""
+    Description: ARN of role to use for replication
+
+  ReplicationSourcePrefix:
+    Type: String
+    Default: ""
+    Description: S3 Prefix to sync
+
+  Versioning:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+      - false-but-was-true
+    Description: Enable versioning to keep a backup if objects change.
+
+  ParameterName:
+    Type: String
+    Default: ""
+    Description: SSM parametername
+
+  NotificationEventType:
+    Type: String
+    AllowedValues:
+      - s3:ObjectCreated:*
+      - s3:ObjectCreated:Put
+      - s3:ObjectCreated:Post
+      - s3:ObjectCreated:Copy
+      - s3:ObjectCreated:CompleteMultipartUpload
+      - s3:ObjectRemoved:*
+      - s3:ObjectRemoved:Delete
+      - s3:ObjectRemoved:DeleteMarkerCreated
+      - s3:ObjectRestore:*
+      - s3:ObjectRestore:Post
+      - s3:ObjectRestore:Completed
+      - s3:ObjectRestore:Delete
+      - s3:ObjectAcl:Put
+      - s3:ObjectTagging:*
+      - s3:ObjectTagging:Put
+      - s3:ObjectTagging:Delete
+      - s3:ReducedRedundancyLostObject
+      - s3:Replication:*
+      - s3:Replication:OperationMissedThreshold
+      - s3:Replication:OperationReplicatedAfterThreshold
+      - s3:Replication:OperationNotTracked
+      - s3:Replication:OperationFailedReplication
+      - s3:LifecycleTransition
+      - s3:LifecycleExpiration:*
+      - s3:LifecycleExpiration:Delete
+      - s3:LifecycleExpiration:DeleteMarkerCreated
+      - s3:IntelligentTiering
+    Default: "s3:ObjectCreated:*"
+
+  NotificationPrefix:
+    Type: String
+    Description: "Prefix for the Event Notification rule (e.g images/)"
+    Default: ""
+
+  NotificationSuffix:
+    Type: String
+    Description: "Suffix for the Event Notification rule (e.g .jpg)"
+    Default: ""
+
+  NotificationSQSQueueARN:
+    Type: String
+    Description: "ARN of the SQS channel for event notifications"
+    Default: ""
+
+
+Conditions:
+  HasBucketName: !Not [!Equals [!Ref BucketName, '']]
+  HasLoggingEnabled: !Not [!Equals [!Ref LoggingBucketName, '']]
+  HasReplicationEnabled: !And
+    - !Not [!Equals [!Ref ReplicationRole, '']]
+    - !Not [!Equals [!Ref ReplicationBucket, '']]
+    - !Not [!Equals [!Ref ReplicationDestinationAccountId, '']]
+  HasVersioning: !Equals [!Ref Versioning, 'true']
+  HadVersioning: !Equals [!Ref Versioning, 'false-but-was-true']
+  HasEventNotifications: !Not [!Equals [!Ref NotificationSQSQueueARN, '']]
+
+
+Resources:
+  Bucket:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: !Ref DeletionPolicy
+    Properties:
+      BucketName: !If
+        - HasBucketName
+        - "Fn::Sub": "${BucketName}-${AWS::Region}-${Environment}"
+        - Ref: "AWS::NoValue"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration: !If
+        - HasLoggingEnabled
+        - DestinationBucketName: !Ref LoggingBucketName
+          LogFilePrefix: !Sub "s3-access-logs/${BucketName}-${AWS::Region}-${Environment}/"
+        - Ref: "AWS::NoValue"
+      ReplicationConfiguration: !If
+        - HasReplicationEnabled
+        - Role: !Ref ReplicationRole
+          Rules:
+            - DeleteMarkerReplication:
+                Status: !Ref ReplicationEnableDeletion
+              Destination:
+                AccessControlTranslation:
+                  Owner: Destination
+                Account: !Ref ReplicationDestinationAccountId
+                Bucket: !Ref ReplicationBucket
+                Metrics:
+                  EventThreshold:
+                    Minutes: 15
+                  Status: Enabled
+                ReplicationTime:
+                  Status: Enabled
+                  Time:
+                    Minutes: 15
+                StorageClass: STANDARD
+              Filter:
+                Prefix: !Ref ReplicationSourcePrefix
+              Priority: 1
+              Status: Enabled
+        - Ref: "AWS::NoValue"
+      VersioningConfiguration: !If
+        - HasVersioning
+        - Status: Enabled
+        - "Fn::If":
+            - HadVersioning
+            - Status: Suspended
+            - Ref: "AWS::NoValue"
+      MetricsConfigurations:
+        - Id: EntireBucket
+      NotificationConfiguration:
+          Fn::If:
+          - HasEventNotifications
+          - QueueConfigurations:
+            - Event: !Ref NotificationEventType
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: !Ref NotificationPrefix
+                    - Name: suffix
+                      Value: !Ref NotificationSuffix
+              Queue: !Ref sfSQLChannel
+          - Ref: AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
+        - Key: role
+          Value: s3
+
+
+  s3sslonlyaccess:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Deny
+            Resource: !GetAtt Bucket.Arn
+            Principal: '*'
+            Condition:
+              StringLike:
+                "aws:SecureTransport": "false"
+
+  BucketArnSSMKey:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Description: Arn of S3 Bucket
+      Name: !Sub /storage/s3/${BucketName}
+      Type: String
+      Value: !Sub "arn:aws:s3:::${Bucket}"
+
+  BucketNameSSMKey:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Description: Name of the S3 Bucket
+      Name: !Sub /storage/s3/${ParameterName}
+      Type: String
+      Value: !Ref Bucket
+
+Outputs:
+  BucketArn:
+    Description: ARN of the bucket
+    Value: !Sub "arn:aws:s3:::${Bucket}"
+
+  BucketArnSSMKey:
+    Description: SSM Key for Bucket Arn
+    Value: !Ref BucketArnSSMKey
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketArnSSMKey"
+
+  BucketDomainName:
+    Description: Domain name of the bucket.
+    Value: !GetAtt Bucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketDomainName"
+
+  BucketName:
+    Description: Name of the bucket
+    Value: !Ref Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+
+  BucketNameSSMKey:
+    Description: SSM Key for bucket
+    Value: !Ref BucketNameSSMKey
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketNameSSMKey"
+
+  StackName:
+    Description: Stack name.
+    Value: !Sub "${AWS::StackName}"
