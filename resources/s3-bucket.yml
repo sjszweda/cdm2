@@ -328,12 +328,6 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-BucketArnSSMKey"
 
-  BucketDomainName:
-    Description: Domain name of the bucket.
-    Value: !GetAtt Bucket.DomainName
-    Export:
-      Name: !Sub "${AWS::StackName}-BucketDomainName"
-
   BucketName:
     Description: Name of the bucket
     Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
