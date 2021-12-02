@@ -195,7 +195,7 @@ Resources:
                       Value: !Ref NotificationPrefix
                     - Name: suffix
                       Value: !Ref NotificationSuffix
-              Queue: !Ref sfSQLChannel
+              Queue: !Ref NotificationSQSQueueARN
           - Ref: AWS::NoValue
       Tags:
         - Key: Name
