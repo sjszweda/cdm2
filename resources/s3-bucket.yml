@@ -367,7 +367,7 @@ Resources:
   s3sslonlyaccess:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref Bucket
+      Bucket: !Sub "${BucketName}-${AWS::Region}-${Environment}"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
