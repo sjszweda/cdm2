@@ -11,6 +11,7 @@ Parameters:
     AllowedValues:
         - Delete
         - Retain
+        - Snapshot
     Default: "Retain"
 
   BucketName:
@@ -114,6 +115,9 @@ Parameters:
 
 
 Conditions:
+  IsDeletePolicy: !Equals [!Ref DeletionPolicy, 'Delete']
+  IsRetainPolicy: !Equals [!Ref DeletionPolicy, 'Retain']
+  IsSnapshotPolicy: !Equals [!Ref DeletionPolicy, 'Snapshot']
   HasBucketName: !Not [!Equals [!Ref BucketName, '']]
   HasLoggingEnabled: !Not [!Equals [!Ref LoggingBucketName, '']]
   HasReplicationEnabled: !And
@@ -126,9 +130,10 @@ Conditions:
 
 
 Resources:
-  Bucket:
+  BucketDeletePol:
     Type: "AWS::S3::Bucket"
-    DeletionPolicy: !Ref DeletionPolicy
+    Condition: IsDeletePolicy
+    DeletionPolicy: "Delete"
     Properties:
       BucketName: !If
         - HasBucketName
@@ -203,6 +208,161 @@ Resources:
         - Key: role
           Value: s3
 
+  BucketRetainPol:
+    Type: "AWS::S3::Bucket"
+    Condition: IsRetainPolicy
+    DeletionPolicy: "Retain"
+    Properties:
+      BucketName: !If
+        - HasBucketName
+        - "Fn::Sub": "${BucketName}-${AWS::Region}-${Environment}"
+        - Ref: "AWS::NoValue"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration: !If
+        - HasLoggingEnabled
+        - DestinationBucketName: !Ref LoggingBucketName
+          LogFilePrefix: !Sub "s3-access-logs/${BucketName}-${AWS::Region}-${Environment}/"
+        - Ref: "AWS::NoValue"
+      ReplicationConfiguration: !If
+        - HasReplicationEnabled
+        - Role: !Ref ReplicationRole
+          Rules:
+            - DeleteMarkerReplication:
+                Status: !Ref ReplicationEnableDeletion
+              Destination:
+                AccessControlTranslation:
+                  Owner: Destination
+                Account: !Ref ReplicationDestinationAccountId
+                Bucket: !Ref ReplicationBucket
+                Metrics:
+                  EventThreshold:
+                    Minutes: 15
+                  Status: Enabled
+                ReplicationTime:
+                  Status: Enabled
+                  Time:
+                    Minutes: 15
+                StorageClass: STANDARD
+              Filter:
+                Prefix: !Ref ReplicationSourcePrefix
+              Priority: 1
+              Status: Enabled
+        - Ref: "AWS::NoValue"
+      VersioningConfiguration: !If
+        - HasVersioning
+        - Status: Enabled
+        - "Fn::If":
+            - HadVersioning
+            - Status: Suspended
+            - Ref: "AWS::NoValue"
+      MetricsConfigurations:
+        - Id: EntireBucket
+      NotificationConfiguration:
+          Fn::If:
+          - HasEventNotifications
+          - QueueConfigurations:
+            - Event: !Ref NotificationEventType
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: !Ref NotificationPrefix
+                    - Name: suffix
+                      Value: !Ref NotificationSuffix
+              Queue: !Ref NotificationSQSQueueARN
+          - Ref: AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
+        - Key: role
+          Value: s3
+
+  BucketSnapshotPol:
+    Type: "AWS::S3::Bucket"
+    Condition: IsSnapshotPolicy
+    DeletionPolicy: "Snapshot"
+    Properties:
+      BucketName: !If
+        - HasBucketName
+        - "Fn::Sub": "${BucketName}-${AWS::Region}-${Environment}"
+        - Ref: "AWS::NoValue"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration: !If
+        - HasLoggingEnabled
+        - DestinationBucketName: !Ref LoggingBucketName
+          LogFilePrefix: !Sub "s3-access-logs/${BucketName}-${AWS::Region}-${Environment}/"
+        - Ref: "AWS::NoValue"
+      ReplicationConfiguration: !If
+        - HasReplicationEnabled
+        - Role: !Ref ReplicationRole
+          Rules:
+            - DeleteMarkerReplication:
+                Status: !Ref ReplicationEnableDeletion
+              Destination:
+                AccessControlTranslation:
+                  Owner: Destination
+                Account: !Ref ReplicationDestinationAccountId
+                Bucket: !Ref ReplicationBucket
+                Metrics:
+                  EventThreshold:
+                    Minutes: 15
+                  Status: Enabled
+                ReplicationTime:
+                  Status: Enabled
+                  Time:
+                    Minutes: 15
+                StorageClass: STANDARD
+              Filter:
+                Prefix: !Ref ReplicationSourcePrefix
+              Priority: 1
+              Status: Enabled
+        - Ref: "AWS::NoValue"
+      VersioningConfiguration: !If
+        - HasVersioning
+        - Status: Enabled
+        - "Fn::If":
+            - HadVersioning
+            - Status: Suspended
+            - Ref: "AWS::NoValue"
+      MetricsConfigurations:
+        - Id: EntireBucket
+      NotificationConfiguration:
+          Fn::If:
+          - HasEventNotifications
+          - QueueConfigurations:
+            - Event: !Ref NotificationEventType
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: prefix
+                      Value: !Ref NotificationPrefix
+                    - Name: suffix
+                      Value: !Ref NotificationSuffix
+              Queue: !Ref NotificationSQSQueueARN
+          - Ref: AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
+        - Key: role
+          Value: s3
 
   s3sslonlyaccess:
     Type: AWS::S3::BucketPolicy
@@ -214,7 +374,7 @@ Resources:
           - Action:
               - 's3:*'
             Effect: Deny
-            Resource: !GetAtt Bucket.Arn
+            Resource: !Sub "arn:aws:s3:::${BucketName}-${AWS::Region}-${Environment}"
             Principal: '*'
             Condition:
               StringLike:
@@ -224,9 +384,9 @@ Resources:
     Type: "AWS::SSM::Parameter"
     Properties:
       Description: Arn of S3 Bucket
-      Name: !Sub /storage/s3/${BucketName}
+      Name: !Sub /storage/s3/${BucketName}-${AWS::Region}-${Environment}
       Type: String
-      Value: !Sub "arn:aws:s3:::${Bucket}"
+      Value: !Sub "arn:aws:s3:::${BucketName}-${AWS::Region}-${Environment}"
 
   BucketNameSSMKey:
     Type: "AWS::SSM::Parameter"
@@ -234,12 +394,13 @@ Resources:
       Description: Name of the S3 Bucket
       Name: !Sub /storage/s3/${ParameterName}
       Type: String
-      Value: !Ref Bucket
+      Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
+
 
 Outputs:
   BucketArn:
     Description: ARN of the bucket
-    Value: !Sub "arn:aws:s3:::${Bucket}"
+    Value: !Sub "arn:aws:s3:::${BucketName}-${AWS::Region}-${Environment}"
 
   BucketArnSSMKey:
     Description: SSM Key for Bucket Arn
@@ -255,7 +416,7 @@ Outputs:
 
   BucketName:
     Description: Name of the bucket
-    Value: !Ref Bucket
+    Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
     Export:
       Name: !Sub "${AWS::StackName}-BucketName"
 
