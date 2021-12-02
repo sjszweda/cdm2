@@ -2,11 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: AWS resources needed to integrate Snowflake with S3
 
 Parameters:
-  ApplicationName:
-    Type: String
-    Default: cdm2
-    Description: Application name used across all stacks
-
   Environment:
     Type: String
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.

@@ -5,7 +5,7 @@
     "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
     "sfStorageAWSExternalID" : "000",
     "sfSQSChannel" : "",
-    "DeployS3IntegrationStack" : "true"
+    "DeploySnowflakeIntegrationStack" : "true"
   },
   "Tags" : {
       "application" : "cdm2",
