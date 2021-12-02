@@ -11,7 +11,6 @@ Parameters:
     AllowedValues:
         - Delete
         - Retain
-        - Snapshot
     Default: "Retain"
 
   BucketName:
@@ -117,7 +116,6 @@ Parameters:
 Conditions:
   IsDeletePolicy: !Equals [!Ref DeletionPolicy, 'Delete']
   IsRetainPolicy: !Equals [!Ref DeletionPolicy, 'Retain']
-  IsSnapshotPolicy: !Equals [!Ref DeletionPolicy, 'Snapshot']
   HasBucketName: !Not [!Equals [!Ref BucketName, '']]
   HasLoggingEnabled: !Not [!Equals [!Ref LoggingBucketName, '']]
   HasReplicationEnabled: !And
@@ -212,84 +210,6 @@ Resources:
     Type: "AWS::S3::Bucket"
     Condition: IsRetainPolicy
     DeletionPolicy: "Retain"
-    Properties:
-      BucketName: !If
-        - HasBucketName
-        - "Fn::Sub": "${BucketName}-${AWS::Region}-${Environment}"
-        - Ref: "AWS::NoValue"
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      AccessControl: Private
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      LoggingConfiguration: !If
-        - HasLoggingEnabled
-        - DestinationBucketName: !Ref LoggingBucketName
-          LogFilePrefix: !Sub "s3-access-logs/${BucketName}-${AWS::Region}-${Environment}/"
-        - Ref: "AWS::NoValue"
-      ReplicationConfiguration: !If
-        - HasReplicationEnabled
-        - Role: !Ref ReplicationRole
-          Rules:
-            - DeleteMarkerReplication:
-                Status: !Ref ReplicationEnableDeletion
-              Destination:
-                AccessControlTranslation:
-                  Owner: Destination
-                Account: !Ref ReplicationDestinationAccountId
-                Bucket: !Ref ReplicationBucket
-                Metrics:
-                  EventThreshold:
-                    Minutes: 15
-                  Status: Enabled
-                ReplicationTime:
-                  Status: Enabled
-                  Time:
-                    Minutes: 15
-                StorageClass: STANDARD
-              Filter:
-                Prefix: !Ref ReplicationSourcePrefix
-              Priority: 1
-              Status: Enabled
-        - Ref: "AWS::NoValue"
-      VersioningConfiguration: !If
-        - HasVersioning
-        - Status: Enabled
-        - "Fn::If":
-            - HadVersioning
-            - Status: Suspended
-            - Ref: "AWS::NoValue"
-      MetricsConfigurations:
-        - Id: EntireBucket
-      NotificationConfiguration:
-          Fn::If:
-          - HasEventNotifications
-          - QueueConfigurations:
-            - Event: !Ref NotificationEventType
-              Filter:
-                S3Key:
-                  Rules:
-                    - Name: prefix
-                      Value: !Ref NotificationPrefix
-                    - Name: suffix
-                      Value: !Ref NotificationSuffix
-              Queue: !Ref NotificationSQSQueueARN
-          - Ref: AWS::NoValue
-      Tags:
-        - Key: Name
-          Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
-        - Key: role
-          Value: s3
-
-  BucketSnapshotPol:
-    Type: "AWS::S3::Bucket"
-    Condition: IsSnapshotPolicy
-    DeletionPolicy: "Snapshot"
     Properties:
       BucketName: !If
         - HasBucketName
