@@ -1,0 +1,17 @@
+{
+  "Parameters" : {
+    "ApplicationName" : "cdm2",
+    "Environment" : "sszweda",
+    "sfStorageAWSIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
+    "sfStorageAWSExternalID" : "000",
+    "sfSQSChannel" : "",
+    "DeployS3IntegrationStack" : "true"
+  },
+  "Tags" : {
+      "application" : "cdm2",
+      "environment" : "dev",
+      "version" : "0.00.0",
+      "technical_owner" : "parkhouse",
+      "confidentiality" : "internal"
+    }
+}
