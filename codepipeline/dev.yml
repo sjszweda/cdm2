@@ -15,6 +15,7 @@ Parameters:
       - dev
       - test
       - prod
+      - sszweda
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
 
   CodePipelineRoleArn:
