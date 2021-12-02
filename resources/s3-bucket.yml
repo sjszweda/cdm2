@@ -300,45 +300,17 @@ Resources:
               StringLike:
                 "aws:SecureTransport": "false"
 
-  BucketArnSSMKey:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Description: Arn of S3 Bucket
-      Name: !Sub /storage/s3/${BucketName}-${AWS::Region}-${Environment}
-      Type: String
-      Value: !Sub "arn:aws:s3:::${BucketName}-${AWS::Region}-${Environment}"
-
-  BucketNameSSMKey:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Description: Name of the S3 Bucket
-      Name: !Sub /storage/s3/${ParameterName}
-      Type: String
-      Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
-
 
 Outputs:
   BucketArn:
     Description: ARN of the bucket
     Value: !Sub "arn:aws:s3:::${BucketName}-${AWS::Region}-${Environment}"
 
-  BucketArnSSMKey:
-    Description: SSM Key for Bucket Arn
-    Value: !Ref BucketArnSSMKey
-    Export:
-      Name: !Sub "${AWS::StackName}-BucketArnSSMKey"
-
   BucketName:
     Description: Name of the bucket
     Value: !Sub "${BucketName}-${AWS::Region}-${Environment}"
     Export:
       Name: !Sub "${AWS::StackName}-BucketName"
-
-  BucketNameSSMKey:
-    Description: SSM Key for bucket
-    Value: !Ref BucketNameSSMKey
-    Export:
-      Name: !Sub "${AWS::StackName}-BucketNameSSMKey"
 
   StackName:
     Description: Stack name.
