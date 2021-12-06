@@ -46,6 +46,17 @@ Conditions:
 
 
 Resources:
+  AccessLogsBucketStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployCDM2BucketStack
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        BucketName: !Sub "${ApplicationName}-access-logs"
+        NotificationPrefix: "input/recon/"
+        NotificationSQSQueueARN: !Ref sfSQSChannel
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/s3-bucket.yml"
+
   CDM2BucketStack:
     Type: "AWS::CloudFormation::Stack"
     Condition: SallDeployCDM2BucketStack
@@ -53,6 +64,10 @@ Resources:
       Parameters:
         Environment: !Ref Environment
         BucketName: !Ref ApplicationName
+        LoggingBucketName:
+          Fn::GetAtt:
+          - AccessLogsBucketStack
+          - Outputs.BucketName
         NotificationPrefix: "input/recon/"
         NotificationSQSQueueARN: !Ref sfSQSChannel
       TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/s3-bucket.yml"
