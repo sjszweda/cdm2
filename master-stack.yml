@@ -47,22 +47,28 @@ Conditions:
 
 Resources:
   CDM2BucketStack:
-      Type: "AWS::CloudFormation::Stack"
-      Condition: SallDeployCDM2BucketStack
-      Properties:
-        Parameters:
-          Environment: !Ref Environment
-          BucketName: "cdm2"
-          NotificationPrefix: "input/recon/"
-          NotificationSQSQueueARN: !Ref sfSQSChannel
-        TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/resources/s3-bucket.yml"
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployCDM2BucketStack
+    StackName: !Sub "${ApplicationName}-bucketstack-${AWS::Region}-${Environment}"
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        BucketName: !Ref ApplicationName
+        NotificationPrefix: "input/recon/"
+        NotificationSQSQueueARN: !Ref sfSQSChannel
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/s3-bucket.yml"
 
   SnowflakeIntegrationStack:
     Type: "AWS::CloudFormation::Stack"
     Condition: SallDeploySnowflakeIntegrationStack
+    StackName: !Sub "${ApplicationName}-snowflakeintegrationstack-${AWS::Region}-${Environment}"
     Properties:
       Parameters:
         Environment: !Ref Environment
+        CDM2BucketName:
+          Fn::GetAtt:
+          - CDM2BucketStack
+          - Outputs.BucketName
         sfStorageAWSIAMUserARN: !Ref sfStorageAWSIAMUserARN
         sfStorageAWSExternalID: !Ref sfStorageAWSExternalID
-      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/snowflake-s3-integration/snowflake-integration-stack.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/snowflake-s3-integration/snowflake-integration-stack.yml"
