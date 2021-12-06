@@ -69,4 +69,4 @@ Resources:
           - Outputs.BucketName
         sfStorageAWSIAMUserARN: !Ref sfStorageAWSIAMUserARN
         sfStorageAWSExternalID: !Ref sfStorageAWSExternalID
-      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/snowflake-s3-integration/snowflake-integration-stack.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/stacks/snowflake-integration-stack.yml"
