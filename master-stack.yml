@@ -49,7 +49,6 @@ Resources:
   CDM2BucketStack:
     Type: "AWS::CloudFormation::Stack"
     Condition: SallDeployCDM2BucketStack
-    StackName: !Sub "${ApplicationName}-bucketstack-${AWS::Region}-${Environment}"
     Properties:
       Parameters:
         Environment: !Ref Environment
@@ -61,7 +60,6 @@ Resources:
   SnowflakeIntegrationStack:
     Type: "AWS::CloudFormation::Stack"
     Condition: SallDeploySnowflakeIntegrationStack
-    StackName: !Sub "${ApplicationName}-snowflakeintegrationstack-${AWS::Region}-${Environment}"
     Properties:
       Parameters:
         Environment: !Ref Environment
