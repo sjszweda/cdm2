@@ -20,13 +20,12 @@ Parameters:
 
 
 Conditions:
-  IsProdEnvironment: !Equals [!Ref Environment, 'prod']
   SallDeployCDM2IndustrialisedBucketPolicyProd: !And
     - !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
-    - !Equals [!Ref IsProdEnvironment, 'true']
+    - !Equals [!Ref Environment, 'prod']
   SallDeployCDM2IndustrialisedBucketPolicyNonProd: !And
     - !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
-    - !Equals [!Ref IsProdEnvironment, 'false']
+    - !Not [!Equals [!Ref Environment, 'prod']]
 
 
 Resources:
