@@ -2,7 +2,7 @@
   "Parameters" : {
     "ApplicationName" : "cdm2",
     "Environment" : "sszweda",
-    "DeploySnowflakeIntegrationStack" : "true"
+    "DeploySnowflakeIntegrationStack" : "true",
     "SnowflakeIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
     "SnowflakeExternalID" : "000",
     "SnowflakeSQSChannelARN" : "",
