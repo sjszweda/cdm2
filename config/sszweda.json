@@ -1,7 +1,7 @@
 {
   "Parameters" : {
     "ApplicationName" : "cdm2",
-    "Environment" : "sszweda",
+    "Environment" : "prod",
     "DeploySnowflakeIntegrationStack" : "true",
     "SnowflakeIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
     "SnowflakeExternalID" : "000",
@@ -9,7 +9,7 @@
   },
   "Tags" : {
       "application" : "cdm2",
-      "environment" : "dev",
+      "environment" : "prod",
       "version" : "0.00.0",
       "technical_owner" : "parkhouse",
       "confidentiality" : "internal"
