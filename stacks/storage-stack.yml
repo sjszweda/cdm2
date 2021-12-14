@@ -17,13 +17,6 @@ Parameters:
       - "Retain"
     Description: "Delete policy of the buckets in the stack"
 
-  DeployAccessLogs:
-    Type: String
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: "Whether or not to deploy access logging on the buckets in the stack"
-
   SnowflakeSQSChannelARN:
     Type: String
     Description: "ARN of the SQS channel from Snowflake (leave blank if Snowflake objects do not exist yet)"
