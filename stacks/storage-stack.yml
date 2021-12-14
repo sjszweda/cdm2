@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack to deploy S3 buckets for the CDM2 project
+
+Parameters:
+  ApplicationName:
+    Type: String
+    Description: Application name used across all stacks
+
+  Environment:
+    Type: String
+    Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  DeletionPolicy:
+    Type: String
+    AllowedValues:
+      - "Delete"
+      - "Retain"
+    Description: "Delete policy of the buckets in the stack"
+
+  DeployAccessLogs:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Whether or not to deploy access logging on the buckets in the stack"
+
+  SnowflakeSQSChannelARN:
+    Type: String
+    Description: "ARN of the SQS channel from Snowflake (leave blank if Snowflake objects do not exist yet)"
+
+
+Conditions:
+  SallDeployAccessLogs: !Equals [!Ref DeployAccessLogs, 'true']
+
+
+Resources:
+  AccessLogsBucketStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployAccessLogs
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        DeletionPolicy: !Ref DeletionPolicy
+        BucketName: !Sub "${ApplicationName}-access-logs"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/s3-bucket.yml"
+
+  CDM2BucketStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        DeletionPolicy: !Ref DeletionPolicy
+        BucketName: !Ref ApplicationName
+        !If
+          - SallDeployAccessLogs
+          - LoggingBucketName:
+              Fn::GetAtt:
+              - AccessLogsBucketStack
+              - Outputs.BucketName
+          - Ref: "AWS::NoValue"
+        NotificationPrefix: "input/recon/"
+        NotificationSQSQueueARN: !Ref SnowflakeSQSChannelARN
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/s3-bucket.yml"
+
+
+Outputs:
+  CDM2BucketName:
+    Description: Name of the cdm2 bucket
+    Value:
+      Fn::GetAtt:
+      - CDM2BucketStack
+      - Outputs.BucketName

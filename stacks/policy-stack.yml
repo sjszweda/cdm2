@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Stack to deploy bucket policies for the CDM2 project
+
+Parameters:
+  Environment:
+    Type: String
+    Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  CDM2BucketName:
+   Type: String
+   Description: Name of the cdm2 bucket
+
+  DeploySnowflakeIntegrationStack:
+    Type: String
+    Description: Whether to deploy Snowflake S3 Integration Job stack
+
+  SnowflakeS3AccessRoleARN:
+    Type: String
+    Description: ARN of the Snowflake S3 Access Role
+
+
+Conditions:
+  IsProdEnvironment: !Equals [!Ref Environment, 'prod']
+  SallDeployCDM2IndustrialisedBucketPolicyProd: !And
+    - !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
+    - !Equals [!Ref IsProdEnvironment, 'true']
+  SallDeployCDM2IndustrialisedBucketPolicyNonProd: !And
+    - !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
+    - !Equals [!Ref IsProdEnvironment, 'false']
+
+
+Resources:
+  CDM2IndustrialisedBucketPolicyProd:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployCDM2IndustrialisedBucketPolicyProd
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        BucketName: !Ref CDM2BucketName
+        EnableExplicitDeny: true
+        SnowflakeS3AccessRoleARN: !Ref SnowflakeS3AccessRoleARN
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/bucket-policy.yml"
+
+  CDM2IndustrialisedBucketPolicyNonProd:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployCDM2IndustrialisedBucketPolicyNonProd
+    Properties:
+      Parameters:
+        Environment: !Ref Environment
+        BucketName: !Ref CDM2BucketName
+        EnableExplicitDeny: false
+        SnowflakeS3AccessRoleARN: !Ref SnowflakeS3AccessRoleARN
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/bucket-policy.yml"

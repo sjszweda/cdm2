@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create industrialised bucket policy
+
+Parameters:
+  Environment:
+    Type: String
+    Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
+
+  BucketName:
+    Type: String
+    Description: Name of the bucket
+
+  EnableExplicitDeny:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Whether to enable explicit deny statement in the bucket policy
+
+  SnowflakeS3AccessRoleARN:
+    Type: String
+    Description: ARN of the Snowflake S3 access role (used for whitelisting when explicit deny is enabled)
+
+
+Conditions:
+  ShallEnableExplicitDeny: !Equals [!Ref EnableExplicitDeny, 'true']
+
+
+Resources:
+  IndustrialisedBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref BucketName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ForceSSL
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub "arn:aws:s3:::${BucketName}"
+              - !Sub "arn:aws:s3:::${BucketName}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+          - "Fn::If":
+              - ShallEnableExplicitDeny
+              - Sid: ExplicitDeny
+                Effect: Deny
+                Principal: "*"
+                Action: "s3:*"
+                Resource:
+                  - !Sub "arn:aws:s3:::${BucketName}"
+                  - !Sub "arn:aws:s3:::${BucketName}/*"
+                Condition: {
+                  "StringNotLike": {
+                    "aws:PrincipalArn": [
+                      !Ref SnowflakeS3AccessRoleARN
+                      ,!Sub "arn:aws:iam::${AWS::AccountId}:role/dlg_awsdlgcdm2${Environment}_Admin_Role"
+                    ]
+                  }
+                }
+              - Ref: "AWS::NoValue"

@@ -15,6 +15,7 @@ Parameters:
       - dev
       - test
       - prod
+      - sszweda
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
 
   CodePipelineRoleArn:
@@ -35,9 +36,9 @@ Parameters:
 Resources:
   ArtifactsBucket:
     Type: 'AWS::S3::Bucket'
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     Properties:
-      BucketName: !Sub "${ApplicationName}-cicd-artifacts-${Environment}"
+      BucketName: !Sub "${ApplicationName}-cicd-artifacts-${AWS::Region}-${Environment}"
       AccessControl: Private
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -71,10 +72,9 @@ Resources:
 
   TemplatesBucket:
     Type: 'AWS::S3::Bucket'
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     Properties:
-      BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
-      #block public access
+      BucketName: !Sub "${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}"
       AccessControl: Private
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -83,7 +83,6 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Suspended
-      #add server side encryption
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -113,7 +112,7 @@ Resources:
       ArtifactStore:
         Type: S3
         Location: !Ref ArtifactsBucket
-      Name: !Sub "${ApplicationName}-cicd-pipeline-${Environment}"
+      Name: !Sub "${ApplicationName}-cicd-pipeline-${AWS::Region}-${Environment}"
       RoleArn: !Ref CodePipelineRoleArn
       Stages:
         - Name: Source
@@ -142,7 +141,7 @@ Resources:
                 Provider: S3
                 Version: "1"
               Configuration:
-                BucketName: !Sub "${ApplicationName}-cicd-templates-${Environment}"
+                BucketName: !Ref TemplatesBucket
                 Extract: true
               InputArtifacts:
                 - Name: SourceArtifact
@@ -158,7 +157,7 @@ Resources:
                 Capabilities: CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM,CAPABILITY_NAMED_IAM
                 ChangeSetName: update-stack
                 RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/AWSCloudFormationServiceRole"
-                StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
+                StackName: !Sub "${ApplicationName}-masterstack-${AWS::Region}-${Environment}"
                 TemplateConfiguration: !Sub "SourceArtifact::config/${Environment}.json"
                 TemplatePath: "SourceArtifact::master-stack.yml"
               InputArtifacts:
@@ -173,7 +172,7 @@ Resources:
               Configuration:
                 ActionMode: CHANGE_SET_EXECUTE
                 ChangeSetName: update-stack
-                StackName: !Sub "${ApplicationName}-masterstack-${Environment}"
+                StackName: !Sub "${ApplicationName}-masterstack-${AWS::Region}-${Environment}"
               RunOrder: 2
 
 Outputs:

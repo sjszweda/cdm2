@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Stack to deploy iam roles for the cdm2 project
+
+Parameters:
+  CDM2BucketName:
+   Type: String
+   Description: Name of the cdm2 bucket
+
+  DeploySnowflakeIntegrationStack:
+    Type: String
+    Description: Whether to deploy Snowflake S3 Integration Job stack
+
+  SnowflakeIAMUserARN:
+    Type: String
+    Description: "STORAGE_AWS_IAM_USER_ARN from Snowflake"
+
+  SnowflakeExternalID:
+    Type: String
+    Description: "STORAGE_AWS_EXTERNAL_ID from Snowflake (leave as '000' if Snowflake objects do not exist yet)"
+
+
+Conditions:
+  SallDeploySnowflakeS3AccessRole: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
+
+
+Resources:
+  SnowflakeS3AccessRole:
+    Type: "AWS::IAM::Role"
+    Condition: SallDeploySnowflakeS3AccessRole
+    Properties:
+      RoleName: SnowflakeIntegration-S3AccessRole
+      Description: This role allows the external Snowflake AWS user access to the cdm2 bucket
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              AWS: !Ref SnowflakeIAMUserARN
+            Action:
+              - "sts:AssumeRole"
+            Condition:  {"StringEquals": {"sts:ExternalId": [!Ref SnowflakeExternalID]}}
+      Policies:
+        - PolicyName: cdm2-s3-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: AllowS3Access
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:DeleteObject
+                  - s3:DeleteObjectVersion
+                Resource: !Sub "arn:aws:s3:::${CDM2BucketName}/*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub "arn:aws:s3:::${CDM2BucketName}"
+
+
+Outputs:
+  SnowflakeS3AccessRoleName:
+    Description: Name of the SnowflakeS3AccessRole
+    Value: !Ref SnowflakeS3AccessRole
+
+  SnowflakeS3AccessRoleARN:
+    Description: ARN of the SnowflakeS3AccessRole
+    Value: !GetAtt SnowflakeS3AccessRole.Arn

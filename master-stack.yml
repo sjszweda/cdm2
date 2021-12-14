@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CloudFormation template to create the AWS stacks needed for CDM2
+Description: Master stack for the CDM2 project
 
 Parameters:
   ApplicationName:
@@ -14,43 +14,99 @@ Parameters:
       - dev
       - test
       - prod
+      - sszweda
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
 
-  sfStorageAWSIAMUserARN:
-    Type: String
-    Description: "STORAGE_AWS_IAM_USER_ARN from Snowflake"
-    Default: "arn:aws:iam::407453656878:user/wdvj-s-iest4729"
-
-  sfStorageAWSExternalID:
-    Type: String
-    Description: "STORAGE_AWS_EXTERNAL_ID from Snowflake (leave as '000' if Snowflake objects do not exist yet)"
-    Default: "000"
-
-  sfSQLChannel:
-    Type: String
-    Description: "ARN of the SQS channel from Snowflake (leave blank if Snowflake objects do not exist yet)"
-    Default: ""
-
-  DeployS3IntegrationStack:
+  DeploySnowflakeIntegrationStack:
     Type: String
     AllowedValues:
       - "true"
       - "false"
     Description: Whether to deploy Snowflake S3 Integration Job stack
 
+  SnowflakeIAMUserARN:
+    Type: String
+    Description: "STORAGE_AWS_IAM_USER_ARN from Snowflake"
+    Default: "arn:aws:iam::407453656878:user/wdvj-s-iest4729"
+
+  SnowflakeExternalID:
+    Type: String
+    Description: "STORAGE_AWS_EXTERNAL_ID from Snowflake (leave as '000' if Snowflake objects do not exist yet)"
+    Default: "000"
+
+  SnowflakeSQSChannelARN:
+    Type: String
+    Description: "ARN of the SQS channel from Snowflake (leave blank if Snowflake objects do not exist yet)"
+    Default: ""
+
+
+Mappings:
+  BucketDeletionPolicyMap:
+    sandbox:
+      DeletionPolicy: 'Delete'
+    dev:
+      DeletionPolicy: 'Delete'
+    test:
+      DeletionPolicy: 'Retain'
+    prod:
+      DeletionPolicy: 'Retain'
+    sszweda:
+      DeletionPolicy: 'Delete'
+
 
 Conditions:
-  SallDeployS3IntegrationStack: !Equals [!Ref DeployS3IntegrationStack, 'true']
+  IsProdEnvironment: !Equals [!Ref Environment, 'prod']
+  IsTestEnvironment: !Equals [!Ref Environment, 'test']
+  SallDeployStorageStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
+  SallDeployAccessLogs: !Or
+    - !Equals [!Ref IsProdEnvironment, 'true']
+    - !Equals [!Ref IsTestEnvironment, 'true']
+  SallDeployPolicyStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
+  SallDeployIAMStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
 
 
 Resources:
-  S3IntegrationStack:
+  StorageStack:
     Type: "AWS::CloudFormation::Stack"
-    Condition: SallDeployS3IntegrationStack
+    Condition: SallDeployStorageStack
+    Properties:
+      Parameters:
+        ApplicationName: !Ref ApplicationName
+        DeletionPolicy: !FindInMap [BucketDeletionPolicyMap, !Ref Environment, DeletionPolicy]
+        Environment: !Ref Environment
+        DeployAccessLogs: !Ref SallDeployAccessLogs
+        SnowflakeSQSChannelARN: !Ref SnowflakeSQSChannelARN
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/stacks/storage-stack.yml"
+
+  IAMStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployIAMStack
+    Properties:
+      Parameters:
+        ApplicationName: !Ref ApplicationName
+        Environment: !Ref Environment
+        CDM2BucketName:
+          Fn::GetAtt:
+          - StorageStack
+          - Outputs.CDM2BucketName
+        DeploySnowflakeIntegrationStack: !Ref DeploySnowflakeIntegrationStack
+        SnowflakeIAMUserARN: !Ref SnowflakeIAMUserARN
+        SnowflakeExternalID: !Ref SnowflakeExternalID
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/stacks/iam-stack.yml"
+
+  PolicyStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: SallDeployPolicyStack
     Properties:
       Parameters:
         Environment: !Ref Environment
-        sfStorageAWSIAMUserARN: !Ref sfStorageAWSIAMUserARN
-        sfStorageAWSExternalID: !Ref sfStorageAWSExternalID
-        sfSQLChannel: !Ref sfSQLChannel
-      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${Environment}/snowflake-s3-integration/s3integration-stack.yml"
+        CDM2BucketName:
+          Fn::GetAtt:
+          - StorageStack
+          - Outputs.CDM2BucketName
+        DeploySnowflakeIntegrationStack: !Ref DeploySnowflakeIntegrationStack
+        SnowflakeS3AccessRoleARN:
+          Fn::GetAtt:
+          - IAMStack
+          - Outputs.SnowflakeS3AccessRoleARN
+      TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/stacks/policy-stack.yml"
