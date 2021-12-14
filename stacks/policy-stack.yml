@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Stack to deploy bucket policies for the CDM2 project
 
 Parameters:
+  ApplicationName:
+    Type: String
+    Description: Application name used across all stacks
+    
   Environment:
     Type: String
     Description: The environment tag is used to designate the Environment Stage of the associated AWS resource.
