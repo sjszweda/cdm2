@@ -56,9 +56,7 @@ Resources:
         LoggingBucketName:
           !If
             - SallDeployAccessLogs
-            Fn::GetAtt:
-            - AccessLogsBucketStack
-            - Outputs.BucketName
+            - !GetAtt AccessLogsBucketStack.Outputs.BucketName
             - Ref: "AWS::NoValue"
         NotificationPrefix: "input/recon/"
         NotificationSQSQueueARN: !Ref SnowflakeSQSChannelARN
@@ -69,6 +67,4 @@ Outputs:
   CDM2BucketName:
     Description: Name of the cdm2 bucket
     Value:
-      Fn::GetAtt:
-      - CDM2BucketStack
-      - Outputs.BucketName
+      !GetAtt CDM2BucketStack.Outputs.BucketName
