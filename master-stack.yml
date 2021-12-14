@@ -55,12 +55,7 @@ Mappings:
 
 
 Conditions:
-  IsProdEnvironment: !Equals [!Ref Environment, 'prod']
-  IsTestEnvironment: !Equals [!Ref Environment, 'test']
   SallDeployStorageStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
-  SallDeployAccessLogs: !Or
-    - !Equals [!Ref IsProdEnvironment, 'true']
-    - !Equals [!Ref IsTestEnvironment, 'true']
   SallDeployPolicyStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
   SallDeployIAMStack: !Equals [!Ref DeploySnowflakeIntegrationStack, 'true']
 
@@ -74,7 +69,6 @@ Resources:
         ApplicationName: !Ref ApplicationName
         DeletionPolicy: !FindInMap [BucketDeletionPolicyMap, !Ref Environment, DeletionPolicy]
         Environment: !Ref Environment
-        DeployAccessLogs: !Ref SallDeployAccessLogs
         SnowflakeSQSChannelARN: !Ref SnowflakeSQSChannelARN
       TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/stacks/storage-stack.yml"
 

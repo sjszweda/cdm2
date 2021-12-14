@@ -30,7 +30,9 @@ Parameters:
 
 
 Conditions:
-  SallDeployAccessLogs: !Equals [!Ref DeployAccessLogs, 'true']
+  SallDeployAccessLogs: !Or
+    - !Equals [!Ref Environment, 'prod']
+    - !Equals [!Ref Environment, 'test']
 
 
 Resources:
