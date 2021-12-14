@@ -77,12 +77,7 @@ Resources:
     Condition: SallDeployIAMStack
     Properties:
       Parameters:
-        ApplicationName: !Ref ApplicationName
-        Environment: !Ref Environment
-        CDM2BucketName:
-          Fn::GetAtt:
-          - StorageStack
-          - Outputs.CDM2BucketName
+        CDM2BucketName: !GetAtt StorageStack.Outputs.CDM2BucketName
         DeploySnowflakeIntegrationStack: !Ref DeploySnowflakeIntegrationStack
         SnowflakeIAMUserARN: !Ref SnowflakeIAMUserARN
         SnowflakeExternalID: !Ref SnowflakeExternalID
@@ -93,14 +88,9 @@ Resources:
     Condition: SallDeployPolicyStack
     Properties:
       Parameters:
+        ApplicationName: !Ref ApplicationName
         Environment: !Ref Environment
-        CDM2BucketName:
-          Fn::GetAtt:
-          - StorageStack
-          - Outputs.CDM2BucketName
+        CDM2BucketName: !GetAtt StorageStack.Outputs.CDM2BucketName
         DeploySnowflakeIntegrationStack: !Ref DeploySnowflakeIntegrationStack
-        SnowflakeS3AccessRoleARN:
-          Fn::GetAtt:
-          - IAMStack
-          - Outputs.SnowflakeS3AccessRoleARN
+        SnowflakeS3AccessRoleARN: !GetAtt IAMStack.Outputs.SnowflakeS3AccessRoleARN
       TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/stacks/policy-stack.yml"
