@@ -53,13 +53,13 @@ Resources:
         Environment: !Ref Environment
         DeletionPolicy: !Ref DeletionPolicy
         BucketName: !Ref ApplicationName
-        !If
-          - SallDeployAccessLogs
-          - LoggingBucketName:
-              Fn::GetAtt:
-              - AccessLogsBucketStack
-              - Outputs.BucketName
-          - Ref: "AWS::NoValue"
+        LoggingBucketName:
+          !If
+            - SallDeployAccessLogs
+            Fn::GetAtt:
+            - AccessLogsBucketStack
+            - Outputs.BucketName
+            - Ref: "AWS::NoValue"
         NotificationPrefix: "input/recon/"
         NotificationSQSQueueARN: !Ref SnowflakeSQSChannelARN
       TemplateURL: !Sub "https://s3.amazonaws.com/${ApplicationName}-cicd-templates-${AWS::Region}-${Environment}/resources/s3-bucket.yml"
