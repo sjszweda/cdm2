@@ -4,7 +4,7 @@
     "Environment" : "sszweda",
     "DeploySnowflakeIntegrationStack" : "true",
     "SnowflakeIAMUserARN" : "arn:aws:iam::407453656878:user/wdvj-s-iest4729",
-    "SnowflakeExternalID" : "000",
+    "SnowflakeExternalID" : "UB56864_SFCRole=8_tMehoivUlnceRB/VLJudjfUYe0w=",
     "SnowflakeSQSChannelARN" : ""
   },
   "Tags" : {
