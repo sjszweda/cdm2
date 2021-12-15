@@ -58,6 +58,7 @@ Resources:
                     "aws:PrincipalArn": [
                       !Ref SnowflakeS3AccessRoleARN
                       ,!Sub "arn:aws:iam::${AWS::AccountId}:role/dlg_awsdlgcdm2${Environment}_Admin_Role"
+                      ,!Sub "arn:aws:iam::${AWS::AccountId}:user/admin"
                     ]
                   }
                 }
